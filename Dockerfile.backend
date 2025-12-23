@@ -1,28 +1,24 @@
 FROM golang:1.23-alpine AS builder
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy the dependency files from the ROOT of the repo
 COPY go.mod go.sum ./
-
-# Download modules
 RUN go mod download
 
-# COPY EVERYTHING from the repo root to the container's /app folder
 COPY . .
 
-# Build the app (renamed output to 'main')
+# Build the app
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
-# Start the second stage (making the image small)
+# --- Final Stage ---
 FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /root/
+# FIXED: Use /app instead of /root/ to fix Permission Error
+WORKDIR /app
 
-
+# Copy the binary to /app
 COPY --from=builder /app/main .
 
 EXPOSE 8080
